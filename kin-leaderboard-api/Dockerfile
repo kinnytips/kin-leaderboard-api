@@ -1,23 +1,21 @@
-#Depending on the operating system of the host machines(s) that will build or run the containers, the image specified in the FROM statement may need to be changed.
-#For more information, please see https://aka.ms/containercompat
-
-FROM microsoft/dotnet:2.2-aspnetcore-runtime-nanoserver-1803 AS base
+FROM mcr.microsoft.com/dotnet/core-nightly/aspnet:3.0 AS base
 WORKDIR /app
-EXPOSE 80
-EXPOSE 443
+EXPOSE 5000
 
-FROM microsoft/dotnet:2.2-sdk-nanoserver-1803 AS build
+FROM mcr.microsoft.com/dotnet/core-nightly/sdk:3.0 AS build
 WORKDIR /src
-COPY ["kin-kre-api/kin-kre-api.csproj", "kin-kre-api/"]
-RUN dotnet restore "kin-kre-api/kin-kre-api.csproj"
+COPY ["kin-leaderboard-api/kin-leaderboard-api.csproj", "kin-leaderboard-api/"]
+COPY ["BlazorFrontEnd/BlazorFrontEnd.csproj", "BlazorFrontEnd/"]
+COPY ["kin-leaderboard-frontend.Shared/kin-leaderboard-frontend.Shared.csproj", "kin-leaderboard-frontend.Shared/"]
+RUN dotnet restore "kin-leaderboard-api/kin-leaderboard-api.csproj"
 COPY . .
-WORKDIR "/src/kin-kre-api"
-RUN dotnet build "kin-kre-api.csproj" -c Release -o /app
+WORKDIR "/src/kin-leaderboard-api"
+RUN dotnet build "kin-leaderboard-api.csproj" -c Release -o /app
 
 FROM build AS publish
-RUN dotnet publish "kin-kre-api.csproj" -c Release -o /app
-
+RUN dotnet publish "kin-leaderboard-api.csproj" -c Release -o /app
+RUN sed -i 's/TLSv1.2/TLSv1.0/g' /etc/ssl/openssl.cnf
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app .
-ENTRYPOINT ["dotnet", "kin-kre-api.dll"]
+ENTRYPOINT ["dotnet", "kin-leaderboard-api.dll"]

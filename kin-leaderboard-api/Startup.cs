@@ -1,21 +1,20 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using AutoMapper;
 using kin_leaderboard_api.Authentication;
 using kin_leaderboard_api.Entities;
 using kin_leaderboard_api.Exceptions;
-using kin_leaderboard_api.Models;
 using kin_leaderboard_api.Services;
 using kin_leaderboard_api.Services.Abstract;
+using kin_leaderboard_frontend.Shared.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
-using Swashbuckle.AspNetCore.Swagger;
-using Operation = kin_leaderboard_api.Models.Operation;
+using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi.Models;
 
 namespace kin_leaderboard_api
 {
@@ -34,7 +33,7 @@ namespace kin_leaderboard_api
         public void ConfigureServices(IServiceCollection services)
         {
             bool isProduction = Configuration["ASPNETCORE_ENVIRONMENT"].Equals("Production");
-
+        
             services.AddTransient<AppService>();
             services.AddTransient<AppMetricService>();
             services.AddTransient<UserWalletService>();
@@ -45,7 +44,7 @@ namespace kin_leaderboard_api
             {
                 cfg.AllowNullCollections = true;
                 cfg.CreateMap<AppOperationEntity, Operation>().ReverseMap();
-                cfg.CreateMap<AppEntity, App>().ReverseMap();
+                cfg.CreateMap<AppEntity, Appp>().ReverseMap();
                 cfg.CreateMap<AppInfoEntity, AppInfo>().ReverseMap();
                 cfg.CreateMap<PagingTokenEntity, PagingToken>().ReverseMap();
                 cfg.CreateMap<AppWalletEntity, AppWallet>().ReverseMap();
@@ -54,13 +53,13 @@ namespace kin_leaderboard_api
                 cfg.CreateMap<AppPaymentEntity, AppPayment>().ReverseMap();
             });
 
-            services.AddMvc()
-                .SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
-                .AddJsonOptions(options =>
-                {
-                    options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-                    options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
-                });
+  
+            services.AddResponseCompression(opts =>
+            {
+                opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+                    new[] { "application/octet-stream" });
+            });
+
             services.AddSingleton(Configuration);
 
             services.AddDbContext<ApplicationContext>(options =>
@@ -90,34 +89,41 @@ namespace kin_leaderboard_api
             {
                 services.AddSwaggerGen(c =>
                 {
-                    c.SwaggerDoc("v1", new Info {Title = "Kin Leader Board API", Version = "v1"});
+                    c.SwaggerDoc("v1", new OpenApiInfo() {Title = "Kin Leader Board API", Version = "v1"});
                     c.DescribeAllEnumsAsStrings();
                     c.DescribeStringEnumsInCamelCase();
 
-
-                    c.AddSecurityDefinition("Bearer",
-                        new ApiKeyScheme
-                        {
-                            In = "header",
-                            Description = "Please enter API key with Bearer into field",
-                            Name = "Authorization",
-                            Type = "apiKey"
-                        });
-
-                    c.AddSecurityRequirement(new Dictionary<string, IEnumerable<string>>
+                    var key = new OpenApiSecurityScheme()
                     {
-                        {"Bearer", Enumerable.Empty<string>()}
+                        In = ParameterLocation.Header,
+                        Description = "Please enter API key with Bearer into field",
+                        Name = "Authorization",
+                        Type = SecuritySchemeType.ApiKey
+                    };
+
+                    c.AddSecurityDefinition("Bearer", key);
+                    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+                    {
+                        {key,Enumerable.Empty<string>().ToList()}
                     });
+
+                   
+
+
                 });
             }
+
+            services.AddMvc(o => { o.EnableEndpointRouting = false; }).AddNewtonsoftJson();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseResponseCompression();
             if (env.IsDevelopment())
             {
                 app.UseHttpStatusCodeExceptionMiddleware();
+                app.UseBlazorDebugging();
                 // app.UseDeveloperExceptionPage();
             }
             else
@@ -136,14 +142,14 @@ namespace kin_leaderboard_api
                 app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "Kin Leader Board API"); });
             }
 
-            app.UseAuthentication();
+           app.UseAuthentication();
 
-            app.UseMvc(routes =>
-            {
-                routes.MapRoute(
-                    "default",
-                    "{controller=Home}/{action=Index}");
-            });
+         app.UseMvc(routes =>
+         {
+             routes.MapRoute(name: "default", template: "{controller}/{action}/{id?}");
+         });
+            app.UseBlazor<BlazorFrontEnd.Program>();
+
         }
     }
 }

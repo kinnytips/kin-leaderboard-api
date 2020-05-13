@@ -1,0 +1,109 @@
+﻿@page "/metrics/{appId}/{startDay}/{endDay}"
+@using ChartJs.Blazor.ChartJS.Common
+@using ChartJs.Blazor.ChartJS.Common.Legends
+@using ChartJs.Blazor.ChartJS.LineChart
+@using ChartJs.Blazor.Charts
+
+@inject ApiClient Http
+@if (lineChartConfig == null)
+{
+    <Loading />
+}
+else
+{
+    <ChartJsLineChart ref="lineChartJs" Config="@lineChartConfig" Width="600" Height="300" />
+}
+
+@functions {
+    [Parameter]
+    string appId { get; set; }
+
+    [Parameter]
+    string startDay { get; set; }
+
+    [Parameter]
+    string endDay { get; set; }
+
+    AppMetric[] _appMetrics;
+
+    public LineChartConfig lineChartConfig { get; set; }
+    ChartJsLineChart lineChartJs = new ChartJsLineChart();
+
+    protected override async Task OnInitAsync()
+    {
+
+        AppMetric[] resp = await Http.GetJsonAsync<AppMetric[]>($"api/Metrics/{appId}/{startDay}/{endDay}");
+        _appMetrics = resp.Reverse().ToArray();
+
+        lineChartConfig = lineChartConfig ?? new LineChartConfig
+        {
+            CanvasId = "total-unique-" + appId,
+            Options = new LineChartOptions
+            {
+                Text = "Total Unique Transactions",
+                Display = true,
+                Responsive = true,
+                Title = new OptionsTitle { Display = true, Text = "Total Operations" },
+                Legend = new Legend
+                {
+                    Position = LegendPosition.BOTTOM.ToString(),
+                    Labels = new Labels
+                    {
+                        UsePointStyle = true
+                    }
+                },
+                Tooltips = new Tooltips
+                {
+                    Mode = Mode.point,
+                    Intersect = false
+                },
+                Scales = new Scales
+                {
+                    xAxes = new List<Axis>
+{
+                        new Axis
+                        {
+                            ScaleLabel = new ScaleLabel
+                            {
+                                LabelString = ""
+                            }
+                        }
+                    },
+                    yAxes = new List<Axis>
+{
+                        new Axis
+                        {
+                            ScaleLabel = new ScaleLabel
+                            {
+                                LabelString = "Transactions"
+                            }
+                        }
+                    }
+                },
+                Hover = new LineChartOptionsHover
+                {
+                    Intersect = true,
+                    Mode = Mode.index
+                }
+            },
+            Data = new LineChartData
+            {
+                Labels = _appMetrics.Select(x => DateTimeOffset.FromUnixTimeSeconds(x.EpochTime).LocalDateTime.ToShortDateString()).ToList(),
+                Datasets = new List<LineChartDataset>
+{
+                    new LineChartDataset
+                    {
+                        BackgroundColor = "#ff6384",
+                        BorderColor = "#ff6384",
+                        Label = appId,
+                        Data = _appMetrics.Select(x => x.OperationCount).OfType<object>().ToList(),
+                        Fill = false,
+                        BorderWidth = 2,
+                        PointRadius = 3,
+                        PointBorderWidth = 1
+                    }
+                }
+            }
+        };
+    }
+}

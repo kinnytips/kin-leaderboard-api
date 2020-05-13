@@ -3,8 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using kin_leaderboard_api.Entities;
-using kin_leaderboard_api.Models;
 using kin_leaderboard_api.Services;
+using kin_leaderboard_frontend.Shared.Models;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -35,13 +35,13 @@ namespace kin_leaderboard_api
             IConfiguration configuration = builder.Build();
 
             IWebHost host = CreateWebHostBuilder(args).UseConfiguration(configuration).Build();
-            DbSeed(host).Wait();
+            //DbSeed(host).Wait();
             host.Run();
         }
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args)
         {
-            return WebHost.CreateDefaultBuilder(args).UseUrls("http://0.0.0.0:5000")
+            return WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>();
         }
 
@@ -62,7 +62,7 @@ namespace kin_leaderboard_api
 
                     try
                     {
-                        App ret = await appService.Get("aggregate").ConfigureAwait(false);
+                        Appp ret = await appService.Get("aggregate").ConfigureAwait(false);
                     }
                     catch (Exception e)
                     {
@@ -70,7 +70,7 @@ namespace kin_leaderboard_api
                         {
                             long epochTime = DateTimeOffset.Now.ToUnixTimeSeconds();
 
-                            await appService.Post(new App
+                            await appService.Post(new Appp
                             {
                                 AppId = "aggregate", FirstSeen = epochTime, FriendlyName = "Aggregated Data",
                                 LastSeen = epochTime

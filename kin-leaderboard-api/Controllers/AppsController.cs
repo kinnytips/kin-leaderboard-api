@@ -1,8 +1,8 @@
 ﻿using System.Threading.Tasks;
 using kin_leaderboard_api.Exceptions;
-using kin_leaderboard_api.Models;
-using kin_leaderboard_api.Models.ApiResponse;
 using kin_leaderboard_api.Services;
+using kin_leaderboard_frontend.Shared.Models;
+using kin_leaderboard_frontend.Shared.Models.ApiResponse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,12 +10,12 @@ namespace kin_leaderboard_api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AppsController : AbstractController<AppService, App, string>
+    public class AppsController : AbstractController<AppService, Appp, string>
     {
         public AppsController(AppService service) : base(service) { }
 
         [HttpGet]
-        public async Task<ActionResult<BaseResponseData<App[]>>> GetAllApps()
+        public async Task<ActionResult<BaseResponseData<Appp[]>>> GetAllApps()
         {
             return Ok(ToResultReponse(await Service.GetAllApps().ConfigureAwait(false)));
         }
@@ -51,13 +51,13 @@ namespace kin_leaderboard_api.Controllers
         }
 
         [ApiExplorerSettings(IgnoreApi = true)]
-        public override Task<ActionResult<BaseResponseData<ApiResult>>> Post(App value)
+        public override Task<ActionResult<BaseResponseData<ApiResult>>> Post(Appp value)
         {
             throw new NotFoundApiException();
         }
 
         [ApiExplorerSettings(IgnoreApi = true)]
-        public override Task<ActionResult<BaseResponseData<App>>> Put(string id, App value)
+        public override Task<ActionResult<BaseResponseData<Appp>>> Put(string id, Appp value)
         {
             throw new NotFoundApiException();
         }
